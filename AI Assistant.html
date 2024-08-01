@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<!-- saved from url=(0065)file:///Users/andrejterehin/Downloads/chat-widget-code%20(6).html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>AI Assistant</title>
+  <style>
+    body {
+      background-color: #d2f8d2;
+      font-family: Arial, sans-serif;
+    }
+
+    .chat-widget {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 400px;
+      height: 600px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: height 0.3s ease-in-out;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-widget.minimized {
+      height: 60px;
+    }
+
+    .chat-header {
+      background-color: #075e54;
+      color: white;
+      padding: 15px;
+      font-weight: bold;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-header span {
+      font-size: 18px;
+    }
+
+    .chat-messages {
+      flex-grow: 1;
+      padding: 15px;
+      background-color: #e5ddd5;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-input-container {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-input {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      background-color: #f0f0f0;
+      margin-right: 10px;
+      transition: border 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: #34b7f1;
+      outline: none;
+    }
+
+    .chat-button {
+      padding: 10px 15px;
+      background-color: #34b7f1;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .chat-button:hover {
+      background-color: #128c7e;
+    }
+
+    .user-message, .bot-message {
+      padding: 10px 15px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      max-width: 70%;
+      word-wrap: break-word;
+      position: relative;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .user-message {
+      background-color: #dcf8c6;
+      align-self: flex-end;
+    }
+
+    .bot-message {
+      background-color: #ffffff;
+      align-self: flex-start;
+    }
+
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .loading-spinner {
+      border: 3px solid #ddd;
+      border-top: 3px solid #34b7f1;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-widget" id="chatWidget">
+    <div class="chat-header" id="chatHeader">
+      <span>AI Assistant</span>
+      <span id="toggleChatIcon">▼</span>
+    </div>
+    <div class="chat-messages" id="chatMessages"><div class="user-message">привет</div><div class="bot-message">Привет! Как я могу помочь тебе сегодня?I</div></div>
+    <div class="chat-input-container">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Type your message...">
+      <button class="chat-button" id="chatButton">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatWidget = document.getElementById('chatWidget');
+    const chatHeader = document.getElementById('chatHeader');
+    const toggleChatIcon = document.getElementById('toggleChatIcon');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const chatButton = document.getElementById('chatButton');
+
+    chatHeader.addEventListener('click', toggleChatWidget);
+    chatButton.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    function toggleChatWidget() {
+      chatWidget.classList.toggle('minimized');
+      if (chatWidget.classList.contains('minimized')) {
+        toggleChatIcon.innerHTML = '&#9650;';
+      } else {
+        toggleChatIcon.innerHTML = '&#9660;';
+      }
+    }
+
+    function sendMessage() {
+      const message = chatInput.value;
+      if (message.trim() !== '') {
+        displayMessage('user', message);
+        chatInput.value = '';
+
+        const webhookUrl = 'https://hook.eu2.make.com/sq1csdmaa54vmgnskjerac6emimz5kbh';
+        displayLoadingIndicator();
+
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: message })
+        })
+          .then(response => response.text())
+          .then(text => {
+            removeLoadingIndicator();
+            try {
+              const data = JSON.parse(text);
+              displayMessage('bot', data.response);
+            } catch (error) {
+              displayMessage('bot', 'Error: Response is not valid JSON.');
+              console.error('Error parsing JSON:', error, text);
+            }
+          })
+          .catch(error => {
+            removeLoadingIndicator();
+            displayMessage('bot', 'Error: ' + error.message);
+            console.error('Fetch error:', error);
+          });
+      }
+    }
+
+    function displayMessage(sender, message) {
+      const messageElement = document.createElement('div');
+      messageElement.classList.add(sender + '-message');
+      messageElement.innerHTML = message;
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function displayLoadingIndicator() {
+      const loadingElement = document.createElement('div');
+      loadingElement.classList.add('loading-indicator');
+      loadingElement.innerHTML = `
+        <div class="loading-spinner"></div>
+        <span>Немножко подождите...</span>
+      `;
+      chatMessages.appendChild(loadingElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeLoadingIndicator() {
+      const loadingElement = document.querySelector('.loading-indicator');
+      if (loadingElement) {
+        loadingElement.remove();
+      }
+    }
+  </script>
+
+</body></html>
